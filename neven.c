@@ -6,31 +6,19 @@
 
 #include "FaceRecEm/common/src/b_FDSDK/fd_emb_sdk.h"
 
-#define LOGE printf
+#include "neven.h"
+
 #define doThrow(...)
 
-struct neven_env {
-	btk_HFaceFinder fd;
-	btk_HSDK sdk;
-	btk_HDCR dcr;
-	int width;
-	int height;
-};
-
-struct neven_face {
-	float confidence;
-	float midpointx;
-	float midpointy;
-	float eyedist;
-};
-
-static void *malloc32(u32 size) {
+static void *malloc32(u32 size)
+{
 	return malloc(size);
 }
 
-struct neven_env *neven_create(int w, int h, int maxFaces) {
+struct neven_env *neven_create(int w, int h, int maxFaces)
+{
 	const int MAX_FILE_SIZE = 65536;
-	void* initData = malloc( MAX_FILE_SIZE ); /* enough to fit entire file */
+	void *initData = malloc(MAX_FILE_SIZE);	/* enough to fit entire file */
 	int filedesc = open("/usr/share/neven/bmd/RFFprec_501.bmd", O_RDONLY);
 	if (filedesc == -1)
 		return NULL;
@@ -54,15 +42,15 @@ struct neven_env *neven_create(int w, int h, int maxFaces) {
 
 	btk_HDCR dcr = NULL;
 	btk_DCRCreateParam dcrParam = btk_DCR_defaultParam();
-	btk_DCR_create( sdk, &dcrParam, &dcr );
+	btk_DCR_create(sdk, &dcrParam, &dcr);
 
 	btk_HFaceFinder fd = NULL;
 	btk_FaceFinderCreateParam fdParam = btk_FaceFinder_defaultParam();
 	fdParam.pModuleParam = initData;
 	fdParam.moduleParamSize = initDataSize;
 	fdParam.maxDetectableFaces = maxFaces;
-	status = btk_FaceFinder_create( sdk, &fdParam, &fd );
-	btk_FaceFinder_setRange(fd, 1, w/2); /* set eye distance range */
+	status = btk_FaceFinder_create(sdk, &fdParam, &fd);
+	btk_FaceFinder_setRange(fd, 1, w / 2);	/* set eye distance range */
 
 	// make sure everything went well
 	if (status != btk_STATUS_OK) {
@@ -70,31 +58,32 @@ struct neven_env *neven_create(int w, int h, int maxFaces) {
 		doThrow(_env, "java/lang/OutOfMemoryError", NULL);
 		return 0;
 	}
-
 	// free the configuration file
 	free(initData);
 
 	struct neven_env *env = malloc(sizeof(struct neven_env));
-	env->fd = fd;
-	env->sdk = sdk;
-	env->dcr = dcr;
+	env->fd = (void *)fd;
+	env->sdk = (void *)sdk;
+	env->dcr = (void *)dcr;
 	env->width = w;
 	env->height = h;
 
 	return env;
 }
 
-void neven_destroy(struct neven_env *env) {
-	btk_FaceFinder_close(env->fd);
-	btk_DCR_close(env->dcr);
-	btk_SDK_close(env->sdk);
+void neven_destroy(struct neven_env *env)
+{
+	btk_FaceFinder_close((btk_HFaceFinder) env->fd);
+	btk_DCR_close((btk_HDCR) env->dcr);
+	btk_SDK_close((btk_HSDK) env->sdk);
 	free(env);
 }
 
-int neven_detect(struct neven_env *env, void *bwbuffer) {
+int neven_detect(struct neven_env *env, void *bwbuffer)
+{
 	// get the fields we need
-	btk_HDCR hdcr = env->dcr;
-	btk_HFaceFinder hfd = env->fd;
+	btk_HDCR hdcr = (btk_HDCR) env->dcr;
+	btk_HFaceFinder hfd = (btk_HFaceFinder) env->fd;
 	int width = env->width;
 	int height = env->height;
 
@@ -105,7 +94,8 @@ int neven_detect(struct neven_env *env, void *bwbuffer) {
 	if (btk_FaceFinder_putDCR(hfd, hdcr) == btk_STATUS_OK) {
 		numberOfFaces = btk_FaceFinder_faces(hfd);
 	} else {
-		LOGE("ERROR: Return 0 faces because error exists in btk_FaceFinder_putDCR.\n");
+		//LOGE("ERROR: Return 0 faces because error exists in btk_FaceFinder_putDCR.\n");
+		return -1;
 	}
 
 	return numberOfFaces;
@@ -124,11 +114,11 @@ static void getFaceData(btk_HDCR hdcr, struct neven_face *fdata)
 	fdata->confidence = (float)btk_DCR_confidence(hdcr) / (1 << 24);
 }
 
-void neven_get_face(struct neven_env *env, struct neven_face *face, int index) {
-	btk_HDCR hdcr = env->dcr;
-	btk_HFaceFinder hfd = env->fd;
+void neven_get_face(struct neven_env *env, struct neven_face *face, int index)
+{
+	btk_HDCR hdcr = (btk_HDCR) env->dcr;
+	btk_HFaceFinder hfd = (btk_HFaceFinder) env->fd;
 
 	btk_FaceFinder_getDCR(hfd, hdcr);
 	getFaceData(hdcr, face);
 }
-
