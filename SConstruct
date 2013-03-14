@@ -12,6 +12,6 @@ import os
 prefix = '/usr/local'
 env.Alias('install', env.Install(os.path.join(prefix, 'lib'), neven_so))
 env.Alias('install', env.Install(os.path.join(prefix, 'include'), 'neven.h'))
-env.Alias('install', env.Install(os.path.join(prefix, 'shared/neven/bmd'),
+env.Alias('install', env.Install(os.path.join(prefix, 'share/neven/bmd'),
                      Glob('Embedded/common/data/APIEm/Modules/*.bmd')))
 

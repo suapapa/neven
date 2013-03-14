@@ -15,11 +15,12 @@ static void *malloc32(u32 size)
 	return malloc(size);
 }
 
-struct neven_env *neven_create(int w, int h, int maxFaces)
+struct neven_env *neven_create(int w, int h, int max_faces,
+			       const char *init_data_path)
 {
 	const int MAX_FILE_SIZE = 65536;
 	void *initData = malloc(MAX_FILE_SIZE);	/* enough to fit entire file */
-	int filedesc = open("/usr/share/neven/bmd/RFFprec_501.bmd", O_RDONLY);
+	int filedesc = open(init_data_path, O_RDONLY);
 	if (filedesc == -1)
 		return NULL;
 	int initDataSize = read(filedesc, initData, MAX_FILE_SIZE);
@@ -48,7 +49,7 @@ struct neven_env *neven_create(int w, int h, int maxFaces)
 	btk_FaceFinderCreateParam fdParam = btk_FaceFinder_defaultParam();
 	fdParam.pModuleParam = initData;
 	fdParam.moduleParamSize = initDataSize;
-	fdParam.maxDetectableFaces = maxFaces;
+	fdParam.maxDetectableFaces = max_faces;
 	status = btk_FaceFinder_create(sdk, &fdParam, &fd);
 	btk_FaceFinder_setRange(fd, 1, w / 2);	/* set eye distance range */
 
@@ -108,9 +109,14 @@ static void getFaceData(btk_HDCR hdcr, struct neven_face *fdata)
 	btk_DCR_getNode(hdcr, 0, &leftEye);
 	btk_DCR_getNode(hdcr, 1, &rightEye);
 
+	fdata->lefteye.x = (float)leftEye.x / (1 << 16);
+	fdata->lefteye.y = (float)leftEye.y / (1 << 16);
+	fdata->righteye.x = (float)rightEye.x / (1 << 16);
+	fdata->righteye.y = (float)rightEye.y / (1 << 16);
+
 	fdata->eyedist = (float)(rightEye.x - leftEye.x) / (1 << 16);
-	fdata->midpointx = (float)(rightEye.x + leftEye.x) / (1 << 17);
-	fdata->midpointy = (float)(rightEye.y + leftEye.y) / (1 << 17);
+	fdata->midpoint.x = (float)(rightEye.x + leftEye.x) / (1 << 17);
+	fdata->midpoint.y = (float)(rightEye.y + leftEye.y) / (1 << 17);
 	fdata->confidence = (float)btk_DCR_confidence(hdcr) / (1 << 24);
 }
 
