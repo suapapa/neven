@@ -1,0 +1,4 @@
+.gitignore
+.sconsign.dblite
+*.os
+libneven.so
