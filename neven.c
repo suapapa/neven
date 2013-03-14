@@ -15,12 +15,12 @@ static void *malloc32(u32 size)
 	return malloc(size);
 }
 
-struct neven_env *neven_create(int w, int h, int max_faces,
-			       const char *init_data_path)
+neven_env_t *neven_create(int w, int h, int max_faces,
+			  const char *initdata_path)
 {
 	const int MAX_FILE_SIZE = 65536;
 	void *initData = malloc(MAX_FILE_SIZE);	/* enough to fit entire file */
-	int filedesc = open(init_data_path, O_RDONLY);
+	int filedesc = open(initdata_path, O_RDONLY);
 	if (filedesc == -1)
 		return NULL;
 	int initDataSize = read(filedesc, initData, MAX_FILE_SIZE);
@@ -62,7 +62,7 @@ struct neven_env *neven_create(int w, int h, int max_faces,
 	// free the configuration file
 	free(initData);
 
-	struct neven_env *env = malloc(sizeof(struct neven_env));
+	neven_env_t *env = malloc(sizeof(neven_env_t));
 	env->fd = (void *)fd;
 	env->sdk = (void *)sdk;
 	env->dcr = (void *)dcr;
@@ -72,7 +72,7 @@ struct neven_env *neven_create(int w, int h, int max_faces,
 	return env;
 }
 
-void neven_destroy(struct neven_env *env)
+void neven_destroy(neven_env_t * env)
 {
 	btk_FaceFinder_close((btk_HFaceFinder) env->fd);
 	btk_DCR_close((btk_HDCR) env->dcr);
@@ -80,7 +80,7 @@ void neven_destroy(struct neven_env *env)
 	free(env);
 }
 
-int neven_detect(struct neven_env *env, void *bwbuffer)
+int neven_detect(neven_env_t * env, void *bwbuffer)
 {
 	// get the fields we need
 	btk_HDCR hdcr = (btk_HDCR) env->dcr;
@@ -102,7 +102,7 @@ int neven_detect(struct neven_env *env, void *bwbuffer)
 	return numberOfFaces;
 }
 
-static void getFaceData(btk_HDCR hdcr, struct neven_face *fdata)
+static void getFaceData(btk_HDCR hdcr, neven_face_t * fdata)
 {
 	btk_Node leftEye, rightEye;
 
@@ -120,7 +120,7 @@ static void getFaceData(btk_HDCR hdcr, struct neven_face *fdata)
 	fdata->confidence = (float)btk_DCR_confidence(hdcr) / (1 << 24);
 }
 
-void neven_get_face(struct neven_env *env, struct neven_face *face, int index)
+void neven_get_face(neven_env_t * env, neven_face_t * face, int index)
 {
 	btk_HDCR hdcr = (btk_HDCR) env->dcr;
 	btk_HFaceFinder hfd = (btk_HFaceFinder) env->fd;
